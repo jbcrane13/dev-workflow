@@ -1,0 +1,29 @@
+{
+  "hooks": [
+    {
+      "type": "SessionStart",
+      "handler": {
+        "type": "prompt",
+        "prompt": "Load project context for this session:\n\n1. Check for `.claude/context/project-state.md` - if exists, read and summarize current phase, in-progress items, and blockers\n2. Check for `docs/adr/README.md` - if exists, read the ADR index\n3. Check for `docs/lessons/README.md` - if exists, read the lessons index\n\nProvide a brief context summary (~200 tokens) of what you found. If no context files exist, note that this appears to be a new project or one without project-notes setup.\n\nDo NOT create any files - just read and summarize what exists."
+      }
+    },
+    {
+      "type": "Stop",
+      "handler": {
+        "type": "prompt",
+        "prompt": "Session ending. Consider if any of the following should be updated:\n\n1. **Project State** - Did significant work get completed? Should `.claude/context/project-state.md` be updated?\n2. **ADR** - Was a significant architectural decision made that should be recorded?\n3. **Lesson** - Was a tricky problem solved that others (or future you) should know about?\n4. **Note** - Was complex implementation done that's worth documenting?\n\nIf updates are warranted, briefly note what should be captured. The user can then use /adr, /lesson, /state, or /note commands to record them.\n\nDo NOT automatically create documents - just suggest what might be worth capturing."
+      }
+    },
+    {
+      "type": "PreToolUse",
+      "matcher": {
+        "toolNames": ["Write", "Edit"]
+      },
+      "handler": {
+        "type": "prompt",
+        "prompt": "Before writing to docs/adr/, docs/lessons/, docs/notes/, or .claude/context/:\n\n1. Verify the document follows the appropriate template structure\n2. Check token budget compliance (ADR: 150-250, Lesson: 120-180, Note: 150-250, State: 300-450)\n3. Ensure index will be updated if creating a new document\n\nProceed with the write operation."
+      },
+      "condition": "filePath.includes('docs/adr/') || filePath.includes('docs/lessons/') || filePath.includes('docs/notes/') || filePath.includes('.claude/context/')"
+    }
+  ]
+}

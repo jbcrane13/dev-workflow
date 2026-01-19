@@ -1,0 +1,79 @@
+{
+  "name": "dev-workflow",
+  "version": "1.0.0",
+  "description": "Development workflow management with project notes, ADRs, lessons learned, and context persistence across sessions",
+  "author": {
+    "name": "Blake Crane",
+    "email": "jbcrane13@github.com",
+    "url": "https://github.com/jbcrane13"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jbcrane13/dev-workflow"
+  },
+  "keywords": [
+    "workflow",
+    "adr",
+    "architecture-decisions",
+    "lessons-learned",
+    "project-notes",
+    "context-management",
+    "documentation"
+  ],
+  "categories": ["workflow", "documentation"],
+  "components": {
+    "commands": [
+      {
+        "name": "adr",
+        "file": "commands/adr.md",
+        "description": "Create or list Architecture Decision Records"
+      },
+      {
+        "name": "lesson",
+        "file": "commands/lesson.md",
+        "description": "Record lessons learned from mistakes or discoveries"
+      },
+      {
+        "name": "state",
+        "file": "commands/state.md",
+        "description": "View or update project state snapshot"
+      },
+      {
+        "name": "note",
+        "file": "commands/note.md",
+        "description": "Create or view technical notes"
+      },
+      {
+        "name": "context",
+        "file": "commands/context.md",
+        "description": "View loaded project context summary"
+      }
+    ],
+    "skills": [
+      {
+        "name": "project-notes",
+        "file": "skills/project-notes/SKILL.md",
+        "description": "Project context management with ADRs, lessons, state, and notes",
+        "autoActivate": {
+          "globs": [
+            "docs/adr/**",
+            "docs/lessons/**",
+            "docs/notes/**",
+            ".claude/context/**"
+          ]
+        }
+      }
+    ],
+    "agents": [
+      {
+        "name": "context-curator",
+        "file": "agents/context-curator.md",
+        "description": "Manages project notes lifecycle"
+      }
+    ],
+    "hooks": "hooks/hooks.json"
+  },
+  "requirements": {
+    "claude-code": ">=2.0.0"
+  }
+}
