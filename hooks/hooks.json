@@ -1,29 +1,45 @@
 {
-  "hooks": [
-    {
-      "type": "SessionStart",
-      "handler": {
-        "type": "prompt",
-        "prompt": "Load project context for this session:\n\n1. Check for `.claude/context/project-state.md` - if exists, read and summarize current phase, in-progress items, and blockers\n2. Check for `docs/adr/README.md` - if exists, read the ADR index\n3. Check for `docs/lessons/README.md` - if exists, read the lessons index\n\nProvide a brief context summary (~200 tokens) of what you found. If no context files exist, note that this appears to be a new project or one without project-notes setup.\n\nDo NOT create any files - just read and summarize what exists."
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "**Session Start - Workflow Context Restoration**\n\nLoad and restore development workflow context:\n\n1. **Load Session State**: Read `.session/state.json` if exists:\n   - Active feature name\n   - Current workflow stage\n   - Gate status\n   - Recent actions\n\n2. **Load Feature Context**: If active feature, read `.claude/context/active/{feature-name}.md`\n\n3. **Check for Stale Work**: Check all feature branches for last commit >7 days (configurable in .claude/dev-workflow.local.md)\n\n4. **Display Context**:\n   - If active feature: Show \"Welcome Back\" with feature name, current stage, pending gates, last action\n   - If no active feature but stale work: Warn about stale branches and offer options (resume/archive/delete)\n   - If no active work: Display Dashboard (list all in-progress features from .claude/context/active/)\n\n5. **Suggest Next Action**: Based on current stage, suggest what to do next\n\n**Output Format**:\n```\n╔════════════════════════════════════════════════════════════╗\n║            Welcome Back - Session Restored                 ║\n╠════════════════════════════════════════════════════════════╣\n║  Last Active: {Feature Name}                               ║\n║  Current Stage: {Stage}                                    ║\n║  Pending Gates: {Gates}                                    ║\n║  Ready to continue?                                        ║\n╚════════════════════════════════════════════════════════════╝\n```\n\nIf context loading fails or files don't exist, silently continue without errors."
+          }
+        ]
       }
-    },
-    {
-      "type": "Stop",
-      "handler": {
-        "type": "prompt",
-        "prompt": "Session ending. Consider if any of the following should be updated:\n\n1. **Project State** - Did significant work get completed? Should `.claude/context/project-state.md` be updated?\n2. **ADR** - Was a significant architectural decision made that should be recorded?\n3. **Lesson** - Was a tricky problem solved that others (or future you) should know about?\n4. **Note** - Was complex implementation done that's worth documenting?\n\nIf updates are warranted, briefly note what should be captured. The user can then use /adr, /lesson, /state, or /note commands to record them.\n\nDo NOT automatically create documents - just suggest what might be worth capturing."
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "**TDD Gate Enforcement**\n\nIf this operation involves writing or editing a Swift implementation file (.swift but NOT *Tests.swift):\n\n1. **Check if this is a test file**:\n   - If filename ends with `Tests.swift`: ALLOW (writing tests is always allowed)\n   - If filename is `*Tests.swift`: ALLOW\n\n2. **Check if this is implementation code**:\n   - Look for recent test file changes (git status shows *Tests.swift modified recently)\n   - Look for failing test run output in recent context/messages\n   - Check if `.session/state.json` shows currentStage is \"TDD Red\" or later\n\n3. **TDD Gate Validation**:\n   - If NO failing test found AND currentStage is \"Planning\" or \"TDD Red\": **BLOCK with message**\n   - If failing test exists OR currentStage is \"TDD Green\" or later: ALLOW\n\n**BLOCKING MESSAGE** (if TDD gate fails):\n```\n🛑 TDD Guard\n\nYou are attempting to write implementation code, but I don't see a failing\ntest for this requirement yet.\n\nTDD Workflow:\n1. Write a test that FAILS (Red)\n2. Write minimal code to make it PASS (Green)\n3. Refactor while staying Green\n\nPlease create a test case that fails first, then implement the code.\n\nTo proceed:\n- Create {FileName}Tests.swift with test that fails\n- Run /swiftui:test to verify failure\n- Then write implementation\n\nOverride: Not available for TDD gate (fundamental requirement)\n```\n\n**ALLOW SILENTLY** if:\n- File is a test file\n- Test file was recently modified\n- currentStage indicates TDD Red passed\n- File is not Swift code"
+          }
+        ]
       }
-    },
-    {
-      "type": "PreToolUse",
-      "matcher": {
-        "toolNames": ["Write", "Edit"]
-      },
-      "handler": {
-        "type": "prompt",
-        "prompt": "Before writing to docs/adr/, docs/lessons/, docs/notes/, or .claude/context/:\n\n1. Verify the document follows the appropriate template structure\n2. Check token budget compliance (ADR: 150-250, Lesson: 120-180, Note: 150-250, State: 300-450)\n3. Ensure index will be updated if creating a new document\n\nProceed with the write operation."
-      },
-      "condition": "filePath.includes('docs/adr/') || filePath.includes('docs/lessons/') || filePath.includes('docs/notes/') || filePath.includes('.claude/context/')"
-    }
-  ]
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "**Session End - State Persistence**\n\nBefore session ends, save workflow state:\n\n1. **Save Current State**: Update `.session/state.json` with:\n   - activeFeature (if any)\n   - currentStage\n   - gateStatus (all gates)\n   - lastAction (brief description of what was just done)\n   - timestamp\n   - sessionCount (increment)\n\n2. **Update Feature Context**: If active feature, update `.claude/context/active/{feature-name}.md`:\n   - Current workflow stage\n   - Gate status\n   - Recent decisions (if any made this session)\n   - Next steps\n\n3. **Prompt for Lessons Learned** (if applicable):\n   - If session involved problem-solving or debugging\n   - If new discoveries or gotchas encountered\n   - If architectural decisions made\n\n**Lessons Prompt**:\n```\nSession ending. Would you like to record any lessons learned?\n\nCategories:\n- Process: Workflow or planning insights\n- Tech: Framework/language gotchas\n- Tooling: IDE, build, or dependency issues\n\n/record-lesson [title]  or  Skip\n```\n\n4. **Save silently** if no prompts needed"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "**Workflow Intent Detection**\n\nAnalyze user prompt to detect if workflow orchestration is needed:\n\n1. **Classify Intent**:\n   - **Feature request**: User wants to add/build/create/implement something new\n     - Triggers: \"add\", \"create\", \"build\", \"implement\", \"new feature\", \"let's add\"\n   - **Bug fix**: User reports issue or wants to fix something broken\n     - Triggers: \"fix\", \"bug\", \"broken\", \"not working\", \"crash\"\n   - **Refactoring**: User wants to clean up or restructure code\n     - Triggers: \"refactor\", \"clean up\", \"extract\", \"reorganize\"\n   - **Other**: General questions, research, exploration\n\n2. **Action by Intent**:\n\n**If Feature Request**:\n- Check if active feature exists in `.session/state.json`\n- If no active feature: Suggest `/start-feature` to enter workflow\n- If active feature: Activate workflow-orchestrator to guide through current stage\n- Output: \"I detected a feature request. Would you like to start a new feature workflow? /start-feature\"\n\n**If Bug Fix**:\n- Activate workflow-orchestrator in bug-fix mode\n- Suggest creating failing test that reproduces bug\n- Follow TDD cycle for fix\n- Output: \"I detected a bug fix request. Let's create a failing test that reproduces this issue first.\"\n\n**If Refactoring**:\n- Check current workflow stage from `.session/state.json`\n- If currentStage is \"TDD Green\" or \"Refactor\": Proceed with refactoring\n- If different stage: Warn that refactoring should happen in Refactor stage\n- Output: \"I detected refactoring work. Let's ensure tests are green first, then refactor.\"\n\n**If Other**:\n- No workflow activation\n- Process as normal request\n\n3. **Load Context if Needed**:\n   - If workflow activation triggered, ensure context loaded\n   - Load `.session/state.json` and feature context\n   - Ready workflow-orchestrator with current state\n\nThis hook should be **non-blocking** - it detects and suggests, doesn't force."
+          }
+        ]
+      }
+    ]
+  }
 }

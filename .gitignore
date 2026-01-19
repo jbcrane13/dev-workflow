@@ -1,0 +1,22 @@
+# User-specific local configuration
+.claude/*.local.md
+
+# Session state (ephemeral)
+.session/
+
+# Context archives (may contain large binary screenshots)
+.claude/context/archive/
+
+# Visual proof screenshots (consider using Git LFS)
+visual-proofs/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Testing
+.coverage
+*.log
