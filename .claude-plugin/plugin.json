@@ -4,13 +4,10 @@
   "description": "Workflow orchestration for mobile and macOS development - manages TDD cycles, quality gates, visual verification, and context preservation",
   "author": {
     "name": "Blake Crane",
-    "email": "jbcrane13@github.com",
-    "url": "https://github.com/jbcrane13"
+    "email": "jbcrane13@github.com"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/jbcrane13/dev-workflow"
-  },
+  "repository": "https://github.com/jbcrane13/dev-workflow",
+  "license": "MIT",
   "keywords": [
     "workflow",
     "orchestration",
@@ -22,10 +19,5 @@
     "context-management",
     "session-management",
     "visual-verification"
-  ],
-  "categories": ["workflow", "development"],
-  "license": "MIT",
-  "requirements": {
-    "claude-code": ">=2.0.0"
-  }
+  ]
 }
